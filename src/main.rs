@@ -49,68 +49,124 @@ fn main() {
 		enum Time {
 			UpdateTime(f64),
 		}
-		let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-		{
-			let sender_clone = sender.clone();
-
-			let stack_clone = stack.clone();
-			let hours_adjustment_clone = hours_adjustment.clone();
-			let minutes_adjustment_clone = minutes_adjustment.clone();
-			let seconds_adjustment_clone = seconds_adjustment.clone();
-
-			let hours_spinbutton_clone = hours_spinbutton.clone();
-			let minutes_spinbutton_clone = minutes_spinbutton.clone();
-			let seconds_spinbutton_clone = seconds_spinbutton.clone();
-
-			start_button.connect_clicked(move|_| {
-				println!("Clicked!");
-				stack_clone.set_visible_child_name("pause_stop");
-
-				hours_spinbutton_clone.set_sensitive(false);
-				minutes_spinbutton_clone.set_sensitive(false);
-				seconds_spinbutton_clone.set_sensitive(false);
-
-				let sender_clone2 = sender_clone.clone();
-				let mut seconds =
-					hours_adjustment_clone.get_value() * 3600.0 +
-					minutes_adjustment_clone.get_value() * 60.0 +
-					seconds_adjustment_clone.get_value();
-
-				thread::spawn(move || {
-					//glib::Continue(true);
-					glib::timeout_add_seconds(1, move||  {
-						if seconds > 0.0 {
-							seconds = seconds - 1.0;
-						}
-
-						let _ = sender_clone2.send(Time::UpdateTime(seconds));
-						println!("Seconds: {}", seconds);
-						if seconds > 0.0 {
-
-
-							glib::Continue(true)
-						} else {
-							glib::Continue(false)
-						}
-
-					});
-				});
-
-
-
-
-
-			});
-		}
 
 		let stop = Rc::new(RefCell::new(false));
+
+		let stack_clone = stack.clone();
+		let hours_adjustment_clone = hours_adjustment.clone();
+		let minutes_adjustment_clone = minutes_adjustment.clone();
+		let seconds_adjustment_clone = seconds_adjustment.clone();
+
+		let hours_spinbutton_clone = hours_spinbutton.clone();
+		let minutes_spinbutton_clone = minutes_spinbutton.clone();
+		let seconds_spinbutton_clone = seconds_spinbutton.clone();
+
+		let stack_clone = stack.clone();
+		let stop_clone = stop.clone();
+
+		start_button.connect_clicked(move|_| {
+			let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+			println!("Clicked!");
+			stack_clone.set_visible_child_name("pause_stop");
+
+			hours_spinbutton_clone.set_sensitive(false);
+			minutes_spinbutton_clone.set_sensitive(false);
+			seconds_spinbutton_clone.set_sensitive(false);
+
+			let sender_clone = sender.clone();
+			// let receiver_clone2 = receiver_clone.clone();
+
+			let mut seconds =
+				hours_adjustment_clone.get_value() * 3600.0 +
+				minutes_adjustment_clone.get_value() * 60.0 +
+				seconds_adjustment_clone.get_value();
+
+			thread::spawn(move || {
+				//glib::Continue(true);
+				glib::timeout_add_seconds(1, move||  {
+					if seconds > 0.0 {
+						seconds = seconds - 1.0;
+					}
+
+					let _ = sender_clone.send(Time::UpdateTime(seconds));
+					println!("Seconds: {}", seconds);
+					if seconds > 0.0 {
+						glib::Continue(true)
+					} else {
+						glib::Continue(false)
+					}
+
+				});
+			});
+
+			let hours_adjustment_clone2 = hours_adjustment_clone.clone();
+			let minutes_adjustment_clone2 = minutes_adjustment_clone.clone();
+			let seconds_adjustment_clone2 = seconds_adjustment_clone.clone();
+			let stack_clone2 = stack_clone.clone();
+			let stop_clone2 = stop_clone.clone();
+
+			// let hours_spinbutton_clone = hours_spinbutton.clone();
+			// let minutes_spinbutton_clone = minutes_spinbutton.clone();
+			// let seconds_spinbutton_clone = seconds_spinbutton.clone();
+			//let stop_clone = stop.clone();
+			/// TODO: Tranferir o código do sender e receiver para o callback
+			/// do botão iniciar.
+
+			receiver.attach(None, move |msg| {
+				match msg {
+					Time::UpdateTime(secs) => {
+						//println!("O valor de secs no receiver é: {}", secs);
+						let hours = secs as i32 /3600;
+						//println!("O valor de hours no receiver é: {}", hours);
+						let minutes = (secs as i32 % 3600) / 60;
+						//println!("O valor de minutes no receiver é: {}", minutes);
+						let seconds = (secs as i32 % 3600) % 60;
+						//println!("O valor de seconds no receiver é: {}", seconds);
+						hours_adjustment_clone2.set_value(hours as f64);
+						minutes_adjustment_clone2.set_value(minutes as f64);
+						seconds_adjustment_clone2.set_value(seconds as f64);
+						if secs == 0.0 {
+							stack_clone2.set_visible_child_name("start");
+							// hours_spinbutton_clone.set_sensitive(true);
+							// minutes_spinbutton_clone.set_sensitive(true);
+							// seconds_spinbutton_clone.set_sensitive(true);
+						}
+
+					}
+				}
+
+				let teste = RefCell::new(true);
+				if *stop_clone2 == teste {
+					println!("Fechou");
+					// Foi preciso zerar os valores duas vezes pois,
+					// zerando apenas no botão parar o valor dos segundos do ciclo
+					// atual da glib entrará novamente.
+					// Zerar apenas dentro deste receiver causa um atrazo de 1 segundo,
+					// já que o if apenas é analisado após
+					// ** Solução: Colocar on send dentro do if que verifica se o valor
+					//    dos segundos é igual a zero resolve o problema.
+					hours_adjustment_clone2.set_value(0.0);
+					minutes_adjustment_clone2.set_value(0.0);
+					seconds_adjustment_clone2.set_value(0.0);
+					seconds = 0.0;
+					glib::Continue(false)
+				} else {
+					println!("Aberto");
+					glib::Continue(true)
+				}
+			});
+
+
+
+		});
+
 
 		{
 			let stack_clone2 = stack.clone();
 
-			let hours_adjustment_clone = hours_adjustment.clone();
-			let minutes_adjustment_clone = minutes_adjustment.clone();
-			let seconds_adjustment_clone = seconds_adjustment.clone();
+			// let hours_adjustment_clone = hours_adjustment.clone();
+			// let minutes_adjustment_clone = minutes_adjustment.clone();
+			// let seconds_adjustment_clone = seconds_adjustment.clone();
 			let hours_spinbutton_clone = hours_spinbutton.clone();
 			let minutes_spinbutton_clone = minutes_spinbutton.clone();
 			let seconds_spinbutton_clone = seconds_spinbutton.clone();
@@ -127,62 +183,9 @@ fn main() {
 				seconds_spinbutton_clone.set_sensitive(true);
 				println!("STOP PLEASE!");
 				*stop_clone.borrow_mut() = true;
+				glib::Continue(false);
 				//glib::MainContext::dispatch(&glib::MainContext);
 				//glib::MainContext::release(&glib::MainContext{(sender, receiver)});
-			});
-		}
-
-		{
-			let hours_adjustment_clone = hours_adjustment.clone();
-			let minutes_adjustment_clone = minutes_adjustment.clone();
-			let seconds_adjustment_clone = seconds_adjustment.clone();
-			let stack_clone2 = stack.clone();
-
-			let hours_spinbutton_clone = hours_spinbutton.clone();
-			let minutes_spinbutton_clone = minutes_spinbutton.clone();
-			let seconds_spinbutton_clone = seconds_spinbutton.clone();
-			//let stop_clone = stop.clone();
-			/// TODO: Tranferir o código do sender e receiver para o callback
-			/// do botão iniciar.
-			receiver.attach(None, move |msg| {
-				match msg {
-					Time::UpdateTime(secs) => {
-						//println!("O valor de secs no receiver é: {}", secs);
-						let hours = secs as i32 /3600;
-						//println!("O valor de hours no receiver é: {}", hours);
-						let minutes = (secs as i32 % 3600) / 60;
-						//println!("O valor de minutes no receiver é: {}", minutes);
-						let seconds = (secs as i32 % 3600) % 60;
-						//println!("O valor de seconds no receiver é: {}", seconds);
-						hours_adjustment_clone.set_value(hours as f64);
-						minutes_adjustment_clone.set_value(minutes as f64);
-						seconds_adjustment_clone.set_value(seconds as f64);
-						if secs == 0.0 {
-							stack_clone2.set_visible_child_name("start");
-							// hours_spinbutton_clone.set_sensitive(true);
-							// minutes_spinbutton_clone.set_sensitive(true);
-							// seconds_spinbutton_clone.set_sensitive(true);
-						}
-
-					}
-				}
-
-				let teste = RefCell::new(true);
-				if *stop == teste {
-					// Foi preciso zerar os valores duas vezes pois,
-					// zerando apenas no botão parar o valor dos segundos do ciclo
-					// atual da glib entrará novamente.
-					// Zerar apenas dentro deste receiver causa um atrazo de 1 segundo,
-					// já que o if apenas é analisado após
-					// ** Solução: Colocar on send dentro do if que verifica se o valor
-					//    dos segundos é igual a zero resolve o problema.
-					hours_adjustment_clone.set_value(0.0);
-					minutes_adjustment_clone.set_value(0.0);
-					seconds_adjustment_clone.set_value(0.0);
-					glib::Continue(false)
-				} else {
-					glib::Continue(true)
-				}
 			});
 		}
 
