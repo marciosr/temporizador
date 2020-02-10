@@ -1,6 +1,6 @@
 [package]
-name = "cronometro"
-version = "0.1.0"
+name = "temporizador"
+version = "0.2.0"
 authors = ["Márcio <marciosr10@gmail.com>"]
 edition = "2018"
 

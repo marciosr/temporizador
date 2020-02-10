@@ -107,6 +107,19 @@
 								</property>
 							</object>
 						</child>
+						<child>
+							<object class="GtkStackPage">
+								<property name="name">continue</property>
+								<property name="child">
+									<object class="GtkButton" id="continue_button">
+										<property name="label">Continuar</property>
+										<style>
+											<class name="suggested-action"/>
+										</style>
+									</object>
+								</property>
+							</object>
+						</child>
 					</object>
 				</child>
 			</object>

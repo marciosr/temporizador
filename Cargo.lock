@@ -53,15 +53,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cronometro"
-version = "0.1.0"
-dependencies = [
- "gio 0.7.0 (git+https://github.com/gtk-rs/gio)",
- "glib 0.8.0 (git+https://github.com/gtk-rs/glib)",
- "gtk4 0.1.0 (git+https://github.com/gtk-rs/gtk4)",
-]
-
-[[package]]
 name = "fragile"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -331,6 +322,15 @@ dependencies = [
 name = "pkg-config"
 version = "0.3.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "temporizador"
+version = "0.1.0"
+dependencies = [
+ "gio 0.7.0 (git+https://github.com/gtk-rs/gio)",
+ "glib 0.8.0 (git+https://github.com/gtk-rs/glib)",
+ "gtk4 0.1.0 (git+https://github.com/gtk-rs/gtk4)",
+]
 
 [metadata]
 "checksum atk 0.7.0 (git+https://github.com/gtk-rs/atk)" = "<none>"
