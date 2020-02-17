@@ -10,6 +10,10 @@ use gio::prelude::*;
 use std::env::args;
 use gtk::{Application};
 
+enum Time {
+	UpdateTime(f64),
+}
+
 fn main() {
 	if gtk::init().is_err() {
     	println!("A inicialização do gtk falhou.");
@@ -41,9 +45,7 @@ fn main() {
 		window.set_default_size(350, 200);
 		app.add_window(&window);
 
-		enum Time {
-			UpdateTime(f64),
-		}
+
 
 		// Variáveis utilizadas no controle do estado do aplicativo
 		let stop = Rc::new(RefCell::new(false));
@@ -69,46 +71,18 @@ fn main() {
 				let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
 				let sender_clone = sender.clone();
 
-				let mut seconds =
+				let seconds =
 					hours_adjustment_clone.get_value() * 3600.0 +
 					minutes_adjustment_clone.get_value() * 60.0 +
 					seconds_adjustment_clone.get_value();
 
 				println!("***Valor do ajustamento: {}", seconds_adjustment_clone.get_value());
-
-				if seconds > 0.0 {
-
-					stack_clone.set_visible_child_name("pause_stop");
-
-					hours_spinbutton_clone.set_sensitive(false);
-					minutes_spinbutton_clone.set_sensitive(false);
-					seconds_spinbutton_clone.set_sensitive(false);
-
-					let sender_clone2 = sender_clone.clone();
-
-					thread::spawn(move || {
-						glib::timeout_add_seconds(1, move||  {
-							if seconds > 0.0 {
-								seconds = seconds - 1.0;
-							}
-
-							let _ = sender_clone2.send(Time::UpdateTime(seconds));
-
-							println!("Estado do sender: {:?}",sender_clone2.send(Time::UpdateTime(seconds)));
-
-							match sender_clone2.send(Time::UpdateTime(seconds)) {
-								Ok(_ok) => {
-									if seconds > 0.0 {
-										glib::Continue(true)
-									} else {
-										glib::Continue(false)
-									}
-								},
-								Err(_e) => glib::Continue(false),
-							}
-						});
-					});
-				}
+				do_timeout (	seconds,
+								&hours_spinbutton_clone,
+								&minutes_spinbutton_clone,
+								&seconds_spinbutton_clone,
+								&stack_clone,
+								&sender_clone);
 
 				let hours_adjustment_clone2 = hours_adjustment_clone.clone();
 				let minutes_adjustment_clone2 = minutes_adjustment_clone.clone();
@@ -121,48 +95,18 @@ fn main() {
 				let minutes_spinbutton_clone2 = minutes_spinbutton_clone.clone();
 				let seconds_spinbutton_clone2 = seconds_spinbutton_clone.clone();
 
-				receiver.attach(None, move |msg| {
-					match msg {
-						Time::UpdateTime(secs) => {
-							let hours = secs as i32 /3600;
-							let minutes = (secs as i32 % 3600) / 60;
-							let seconds = (secs as i32 % 3600) % 60;
-							hours_adjustment_clone2.set_value(hours as f64);
-							minutes_adjustment_clone2.set_value(minutes as f64);
-							seconds_adjustment_clone2.set_value(seconds as f64);
+				receiver.attach(None, move |msg|{
 
-							println!("O valor de seconds dentro do receiver é: {}", secs);
-
-							if secs == 0.0 {
-								stack_clone2.set_visible_child_name("start");
-								hours_spinbutton_clone2.set_sensitive(true);
-								minutes_spinbutton_clone2.set_sensitive(true);
-								seconds_spinbutton_clone2.set_sensitive(true);
-							}
-						}
-					}
-
-					let teste = RefCell::new(true);
-					if *stop_clone2 == teste {
-						println!("Fechou");
-
-						if *pause_clone2 != teste {
-
-							hours_adjustment_clone2.set_value(0.0);
-							minutes_adjustment_clone2.set_value(0.0);
-							seconds_adjustment_clone2.set_value(0.0);
-							stack_clone2.set_visible_child_name("start");
-
-							hours_spinbutton_clone2.set_sensitive(true);
-							minutes_spinbutton_clone2.set_sensitive(true);
-							seconds_spinbutton_clone2.set_sensitive(true);
-							seconds = 0.0;
-						}
-						glib::Continue(false)
-					} else {
-						println!("Aberto");
-						glib::Continue(true)
-					}
+					do_receiver(msg,
+								&hours_adjustment_clone2,
+								&minutes_adjustment_clone2,
+								&seconds_adjustment_clone2,
+								&hours_spinbutton_clone2,
+								&minutes_spinbutton_clone2,
+								&seconds_spinbutton_clone2,
+								&stack_clone2,
+								&stop_clone2,
+								&pause_clone2)
 				});
 			});
 		}
@@ -170,6 +114,10 @@ fn main() {
 		{ // Bloco que implementa a ação de parar o temporizador
 
 			let stack_clone2 = stack.clone();
+			let hours_adjustment_clone = hours_adjustment.clone();
+			let minutes_adjustment_clone = minutes_adjustment.clone();
+			let seconds_adjustment_clone = seconds_adjustment.clone();
+
 			let hours_spinbutton_clone = hours_spinbutton.clone();
 			let minutes_spinbutton_clone = minutes_spinbutton.clone();
 			let seconds_spinbutton_clone = seconds_spinbutton.clone();
@@ -177,6 +125,10 @@ fn main() {
 
 			stop_button.connect_clicked(move|_| {
 				stack_clone2.set_visible_child_name("start");
+
+				hours_adjustment_clone.set_value(0.0);
+				minutes_adjustment_clone.set_value(0.0);
+				seconds_adjustment_clone.set_value(0.0);
 
 				hours_spinbutton_clone.set_sensitive(true);
 				minutes_spinbutton_clone.set_sensitive(true);
@@ -231,48 +183,22 @@ fn main() {
 			let stop_clone = stop.clone();
 			let pause_clone = pause.clone();
 
-
 			continue_button.connect_clicked(move|_| {
 				*stop_clone.borrow_mut() = false;
 				*pause_clone.borrow_mut() = false;
 				let (sender_p, receiver_p) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
 
 
-				stack_clone.set_visible_child_name("pause_stop");
-
-				hours_spinbutton_clone.set_sensitive(false);
-				minutes_spinbutton_clone.set_sensitive(false);
-				seconds_spinbutton_clone.set_sensitive(false);
-
 				let sender_clone = sender_p.clone();
 
-				let mut seconds = *pause_value.borrow();
+				let seconds = *pause_value.borrow();
 
-				println!("***Valor do ajustamento: {}", seconds_adjustment_clone.get_value());
-
-				thread::spawn(move || {
-					glib::timeout_add_seconds(1, move||  {
-						if seconds > 0.0 {
-							seconds = seconds - 1.0;
-						}
-
-						let _ = sender_clone.send(Time::UpdateTime(seconds));
-						println!("Seconds_puse: {}", seconds);
-
-						println!("Estado do sender: {:?}",sender_clone.send(Time::UpdateTime(seconds)));
-
-						match sender_clone.send(Time::UpdateTime(seconds)) {
-							Ok(_ok) => {
-								if seconds > 0.0 {
-									glib::Continue(true)
-								} else {
-									glib::Continue(false)
-								}
-							},
-							Err(_e) => glib::Continue(false),
-						}
-					});
-				});
+				do_timeout (seconds,
+							&hours_spinbutton_clone,
+							&minutes_spinbutton_clone,
+							&seconds_spinbutton_clone,
+							&stack_clone,
+							&sender_clone);
 
 				let hours_adjustment_clone2 = hours_adjustment_clone.clone();
 				let minutes_adjustment_clone2 = minutes_adjustment_clone.clone();
@@ -285,47 +211,18 @@ fn main() {
 				let minutes_spinbutton_clone2 = minutes_spinbutton_clone.clone();
 				let seconds_spinbutton_clone2 = seconds_spinbutton_clone.clone();
 
-				receiver_p.attach(None, move |msg| {
-					match msg {
-						Time::UpdateTime(secs) => {
-							let hours = secs as i32 /3600;
-							let minutes = (secs as i32 % 3600) / 60;
-							let seconds = (secs as i32 % 3600) % 60;
-							hours_adjustment_clone2.set_value(hours as f64);
-							minutes_adjustment_clone2.set_value(minutes as f64);
-							seconds_adjustment_clone2.set_value(seconds as f64);
+				receiver_p.attach(None, move |msg|{
 
-							println!("O valor de seconds dentro do receiver de pause é: {}", secs);
-
-							if secs == 0.0 {
-								stack_clone2.set_visible_child_name("start");
-							}
-						}
-					}
-
-					let teste = RefCell::new(true);
-					if *stop_clone2 == teste {
-						println!("Fechou");
-
-						if *pause_clone2 != teste {
-
-							hours_adjustment_clone2.set_value(0.0);
-							minutes_adjustment_clone2.set_value(0.0);
-							seconds_adjustment_clone2.set_value(0.0);
-							stack_clone2.set_visible_child_name("start");
-
-							hours_spinbutton_clone2.set_sensitive(true);
-							minutes_spinbutton_clone2.set_sensitive(true);
-							seconds_spinbutton_clone2.set_sensitive(true);
-							seconds = 0.0;
-						} else {
-							stack_clone2.set_visible_child_name("continue");
-						}
-						glib::Continue(false)
-					} else {
-						println!("Aberto");
-						glib::Continue(true)
-					}
+					do_receiver(msg,
+								&hours_adjustment_clone2,
+								&minutes_adjustment_clone2,
+								&seconds_adjustment_clone2,
+								&hours_spinbutton_clone2,
+								&minutes_spinbutton_clone2,
+								&seconds_spinbutton_clone2,
+								&stack_clone2,
+								&stop_clone2,
+								&pause_clone2)
 				});
 			});
 		}
@@ -334,4 +231,108 @@ fn main() {
 	});
 
 	application.run(&args().collect::<Vec<_>>());
-}	
+}
+
+fn do_timeout (	mut seconds: 				f64,
+				hours_spinbutton:		&gtk::SpinButton,
+				minutes_spinbutton:		&gtk::SpinButton,
+				seconds_spinbutton:		&gtk::SpinButton,
+				stack:					&gtk::Stack,
+				sender:					&glib::Sender<Time>) {
+
+	if seconds > 0.0 {
+
+		stack.set_visible_child_name("pause_stop");
+
+		hours_spinbutton.set_sensitive(false);
+		minutes_spinbutton.set_sensitive(false);
+		seconds_spinbutton.set_sensitive(false);
+
+		let sender_clone = sender.clone();
+
+		thread::spawn(move || {
+			glib::timeout_add_seconds(1, move||  {
+				if seconds > 0.0 {
+					seconds = seconds - 1.0;
+				}
+
+				let _ = sender_clone.send(Time::UpdateTime(seconds));
+
+				//println!("Estado do sender: {:?}",sender_clone2.send(Time::UpdateTime(seconds)));
+
+				match sender_clone.send(Time::UpdateTime(seconds)) {
+					Ok(_) => {
+						if seconds > 0.0 {
+							glib::Continue(true)
+						} else {
+							glib::Continue(false)
+						}
+					},
+					Err(_) => glib::Continue(false),
+				}
+			});
+		});
+	}
+}
+
+
+
+fn do_receiver (msg: Time,
+				hours_adjustment:		&gtk::Adjustment,
+				minutes_adjustment:		&gtk::Adjustment,
+				seconds_adjustment:		&gtk::Adjustment,
+				hours_spinbutton:		&gtk::SpinButton,
+				minutes_spinbutton:		&gtk::SpinButton,
+				seconds_spinbutton:		&gtk::SpinButton,
+				stack:					&gtk::Stack,
+				stop:					&Rc<RefCell<bool>>,
+				pause:					&Rc<RefCell<bool>>,
+				) -> glib::Continue {
+
+	match msg {
+		Time::UpdateTime(secs) => {
+			let hours = secs as i32 /3600;
+			let minutes = (secs as i32 % 3600) / 60;
+			let seconds = (secs as i32 % 3600) % 60;
+			hours_adjustment.set_value(hours as f64);
+			minutes_adjustment.set_value(minutes as f64);
+			seconds_adjustment.set_value(seconds as f64);
+
+			println!("O valor de seconds dentro do receiver de pause é: {}", secs);
+
+			if secs == 0.0 {
+				stack.set_visible_child_name("start");
+				hours_spinbutton.set_sensitive(true);
+				minutes_spinbutton.set_sensitive(true);
+				seconds_spinbutton.set_sensitive(true);
+			}
+		}
+	}
+
+	let padrao = Rc::new(RefCell::new(true));
+	if *stop == padrao {
+		println!("Fechou");
+
+		if *pause != padrao {
+
+			hours_adjustment.set_value(0.0);
+			minutes_adjustment.set_value(0.0);
+			seconds_adjustment.set_value(0.0);
+			stack.set_visible_child_name("start");
+
+			hours_spinbutton.set_sensitive(true);
+			minutes_spinbutton.set_sensitive(true);
+			seconds_spinbutton.set_sensitive(true);
+			//seconds = 0.0;
+		} else {
+			stack.set_visible_child_name("continue");
+		}
+		glib::Continue(false)
+	} else {
+		println!("Aberto");
+		glib::Continue(true)
+	}
+}
+
+
+
