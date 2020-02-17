@@ -45,8 +45,6 @@ fn main() {
 		window.set_default_size(350, 200);
 		app.add_window(&window);
 
-
-
 		// Variáveis utilizadas no controle do estado do aplicativo
 		let stop = Rc::new(RefCell::new(false));
 		let pause = Rc::new(RefCell::new(false));
@@ -90,7 +88,6 @@ fn main() {
 				let stack_clone2 = stack_clone.clone();
 				let stop_clone2 = stop_clone.clone();
 				let pause_clone2 = pause_clone.clone();
-
 				let hours_spinbutton_clone2 = hours_spinbutton_clone.clone();
 				let minutes_spinbutton_clone2 = minutes_spinbutton_clone.clone();
 				let seconds_spinbutton_clone2 = seconds_spinbutton_clone.clone();
@@ -117,7 +114,6 @@ fn main() {
 			let hours_adjustment_clone = hours_adjustment.clone();
 			let minutes_adjustment_clone = minutes_adjustment.clone();
 			let seconds_adjustment_clone = seconds_adjustment.clone();
-
 			let hours_spinbutton_clone = hours_spinbutton.clone();
 			let minutes_spinbutton_clone = minutes_spinbutton.clone();
 			let seconds_spinbutton_clone = seconds_spinbutton.clone();
@@ -141,11 +137,9 @@ fn main() {
 		{ // Bloco de pausa
 
 			let stack_clone = stack.clone();
-
 			let hours_adjustment_clone = hours_adjustment.clone();
 			let minutes_adjustment_clone = minutes_adjustment.clone();
 			let seconds_adjustment_clone = seconds_adjustment.clone();
-
 			let stop_clone = stop.clone();
 			let pause_clone = pause.clone();
 			let pause_value_clone = pause_value.clone();
@@ -174,23 +168,19 @@ fn main() {
 			let hours_adjustment_clone = hours_adjustment.clone();
 			let minutes_adjustment_clone = minutes_adjustment.clone();
 			let seconds_adjustment_clone = seconds_adjustment.clone();
-
 			let hours_spinbutton_clone = hours_spinbutton.clone();
 			let minutes_spinbutton_clone = minutes_spinbutton.clone();
 			let seconds_spinbutton_clone = seconds_spinbutton.clone();
-
 			let stack_clone = stack.clone();
 			let stop_clone = stop.clone();
 			let pause_clone = pause.clone();
 
 			continue_button.connect_clicked(move|_| {
+
 				*stop_clone.borrow_mut() = false;
 				*pause_clone.borrow_mut() = false;
 				let (sender_p, receiver_p) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-
-
 				let sender_clone = sender_p.clone();
-
 				let seconds = *pause_value.borrow();
 
 				do_timeout (seconds,
@@ -229,11 +219,10 @@ fn main() {
 
 		window.show();
 	});
-
 	application.run(&args().collect::<Vec<_>>());
 }
 
-fn do_timeout (	mut seconds: 				f64,
+fn do_timeout (	mut seconds: 			f64,
 				hours_spinbutton:		&gtk::SpinButton,
 				minutes_spinbutton:		&gtk::SpinButton,
 				seconds_spinbutton:		&gtk::SpinButton,
@@ -243,7 +232,6 @@ fn do_timeout (	mut seconds: 				f64,
 	if seconds > 0.0 {
 
 		stack.set_visible_child_name("pause_stop");
-
 		hours_spinbutton.set_sensitive(false);
 		minutes_spinbutton.set_sensitive(false);
 		seconds_spinbutton.set_sensitive(false);
@@ -257,8 +245,6 @@ fn do_timeout (	mut seconds: 				f64,
 				}
 
 				let _ = sender_clone.send(Time::UpdateTime(seconds));
-
-				//println!("Estado do sender: {:?}",sender_clone2.send(Time::UpdateTime(seconds)));
 
 				match sender_clone.send(Time::UpdateTime(seconds)) {
 					Ok(_) => {
@@ -274,8 +260,6 @@ fn do_timeout (	mut seconds: 				f64,
 		});
 	}
 }
-
-
 
 fn do_receiver (msg: Time,
 				hours_adjustment:		&gtk::Adjustment,
@@ -298,8 +282,6 @@ fn do_receiver (msg: Time,
 			minutes_adjustment.set_value(minutes as f64);
 			seconds_adjustment.set_value(seconds as f64);
 
-			println!("O valor de seconds dentro do receiver de pause é: {}", secs);
-
 			if secs == 0.0 {
 				stack.set_visible_child_name("start");
 				hours_spinbutton.set_sensitive(true);
@@ -311,7 +293,6 @@ fn do_receiver (msg: Time,
 
 	let padrao = Rc::new(RefCell::new(true));
 	if *stop == padrao {
-		println!("Fechou");
 
 		if *pause != padrao {
 
@@ -319,20 +300,15 @@ fn do_receiver (msg: Time,
 			minutes_adjustment.set_value(0.0);
 			seconds_adjustment.set_value(0.0);
 			stack.set_visible_child_name("start");
-
 			hours_spinbutton.set_sensitive(true);
 			minutes_spinbutton.set_sensitive(true);
 			seconds_spinbutton.set_sensitive(true);
-			//seconds = 0.0;
+
 		} else {
 			stack.set_visible_child_name("continue");
 		}
 		glib::Continue(false)
 	} else {
-		println!("Aberto");
 		glib::Continue(true)
 	}
 }
-
-
-
