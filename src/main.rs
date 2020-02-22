@@ -155,7 +155,7 @@ fn main() {
 					minutes_adjustment_clone.get_value() * 60.0 +
 					seconds_adjustment_clone.get_value();
 
-				*pause_value_clone.borrow_mut() = seconds - 1.0; // Salva o valor dos segundos
+				*pause_value_clone.borrow_mut() = seconds;
 				*pause_clone.borrow_mut() = true;
 				*stop_clone.borrow_mut() = true; // Altera o estado para parar o receiver
 				println!("O valor do pause_clone dentro do callback do pause_button é: {:?}", pause_value_clone);
@@ -196,13 +196,11 @@ fn main() {
 				let stack_clone2 = stack_clone.clone();
 				let stop_clone2 = stop_clone.clone();
 				let pause_clone2 = pause_clone.clone();
-
 				let hours_spinbutton_clone2 = hours_spinbutton_clone.clone();
 				let minutes_spinbutton_clone2 = minutes_spinbutton_clone.clone();
 				let seconds_spinbutton_clone2 = seconds_spinbutton_clone.clone();
 
 				receiver_p.attach(None, move |msg|{
-
 					do_receiver(msg,
 								&hours_adjustment_clone2,
 								&minutes_adjustment_clone2,
@@ -244,9 +242,10 @@ fn do_timeout (	mut seconds: 			f64,
 					seconds = seconds - 1.0;
 				}
 
-				let _ = sender_clone.send(Time::UpdateTime(seconds));
+				let sender_result = sender_clone.send(Time::UpdateTime(seconds));
 
-				match sender_clone.send(Time::UpdateTime(seconds)) {
+				//match sender_clone.send(Time::UpdateTime(seconds)) {
+				match sender_result {
 					Ok(_) => {
 						if seconds > 0.0 {
 							glib::Continue(true)
@@ -273,23 +272,6 @@ fn do_receiver (msg: Time,
 				pause:					&Rc<RefCell<bool>>,
 				) -> glib::Continue {
 
-	match msg {
-		Time::UpdateTime(secs) => {
-			let hours = secs as i32 /3600;
-			let minutes = (secs as i32 % 3600) / 60;
-			let seconds = (secs as i32 % 3600) % 60;
-			hours_adjustment.set_value(hours as f64);
-			minutes_adjustment.set_value(minutes as f64);
-			seconds_adjustment.set_value(seconds as f64);
-
-			if secs == 0.0 {
-				stack.set_visible_child_name("start");
-				hours_spinbutton.set_sensitive(true);
-				minutes_spinbutton.set_sensitive(true);
-				seconds_spinbutton.set_sensitive(true);
-			}
-		}
-	}
 
 	let padrao = Rc::new(RefCell::new(true));
 	if *stop == padrao {
@@ -309,6 +291,23 @@ fn do_receiver (msg: Time,
 		}
 		glib::Continue(false)
 	} else {
+		match msg {
+			Time::UpdateTime(secs) => {
+				let hours = secs as i32 /3600;
+				let minutes = (secs as i32 % 3600) / 60;
+				let seconds = (secs as i32 % 3600) % 60;
+				hours_adjustment.set_value(hours as f64);
+				minutes_adjustment.set_value(minutes as f64);
+				seconds_adjustment.set_value(seconds as f64);
+
+				if secs == 0.0 {
+					stack.set_visible_child_name("start");
+					hours_spinbutton.set_sensitive(true);
+					minutes_spinbutton.set_sensitive(true);
+					seconds_spinbutton.set_sensitive(true);
+				}
+			}
+		}
 		glib::Continue(true)
 	}
 }
