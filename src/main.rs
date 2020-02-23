@@ -9,6 +9,7 @@ use gtk::prelude::*;
 use gio::prelude::*;
 use std::env::args;
 use gtk::{Application};
+use glib::clone;
 
 enum Time {
 	UpdateTime(f64),
@@ -52,19 +53,16 @@ fn main() {
 
 		{	// Bloco de iniciar o temporizador
 
-			let hours_adjustment_clone = hours_adjustment.clone();
-			let minutes_adjustment_clone = minutes_adjustment.clone();
-			let seconds_adjustment_clone = seconds_adjustment.clone();
+			start_button.connect_clicked(clone!(@weak hours_adjustment as hours_adjustment_clone,
+												@weak minutes_adjustment as minutes_adjustment_clone,
+												@weak seconds_adjustment as seconds_adjustment_clone,
+												@weak stack as stack_clone,
+												@weak hours_spinbutton as hours_spinbutton_clone,
+												@weak minutes_spinbutton as minutes_spinbutton_clone,
+												@weak seconds_spinbutton as seconds_spinbutton_clone,
+												@strong stop as stop_clone,
+												@strong pause as pause_clone => move|_| {
 
-			let hours_spinbutton_clone = hours_spinbutton.clone();
-			let minutes_spinbutton_clone = minutes_spinbutton.clone();
-			let seconds_spinbutton_clone = seconds_spinbutton.clone();
-
-			let stack_clone = stack.clone();
-			let stop_clone = stop.clone();
-			let pause_clone = pause.clone();
-
-			start_button.connect_clicked(move|_| {
 				*stop_clone.borrow_mut() = false;
 				let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
 				let sender_clone = sender.clone();
@@ -74,7 +72,6 @@ fn main() {
 					minutes_adjustment_clone.get_value() * 60.0 +
 					seconds_adjustment_clone.get_value();
 
-				println!("***Valor do ajustamento: {}", seconds_adjustment_clone.get_value());
 				do_timeout (	seconds,
 								&hours_spinbutton_clone,
 								&minutes_spinbutton_clone,
@@ -82,137 +79,117 @@ fn main() {
 								&stack_clone,
 								&sender_clone);
 
-				let hours_adjustment_clone2 = hours_adjustment_clone.clone();
-				let minutes_adjustment_clone2 = minutes_adjustment_clone.clone();
-				let seconds_adjustment_clone2 = seconds_adjustment_clone.clone();
-				let stack_clone2 = stack_clone.clone();
-				let stop_clone2 = stop_clone.clone();
-				let pause_clone2 = pause_clone.clone();
-				let hours_spinbutton_clone2 = hours_spinbutton_clone.clone();
-				let minutes_spinbutton_clone2 = minutes_spinbutton_clone.clone();
-				let seconds_spinbutton_clone2 = seconds_spinbutton_clone.clone();
-
-				receiver.attach(None, move |msg|{
+				receiver.attach(None,clone!(@weak hours_adjustment_clone,
+											@weak minutes_adjustment_clone,
+			                                @weak seconds_adjustment_clone,
+			                                @weak stack_clone,
+											@weak hours_spinbutton_clone,
+											@weak minutes_spinbutton_clone,
+											@weak seconds_spinbutton_clone,
+											@strong stop_clone,
+											@strong pause_clone => @default-return glib::Continue(true),  move |msg|{
 
 					do_receiver(msg,
-								&hours_adjustment_clone2,
-								&minutes_adjustment_clone2,
-								&seconds_adjustment_clone2,
-								&hours_spinbutton_clone2,
-								&minutes_spinbutton_clone2,
-								&seconds_spinbutton_clone2,
-								&stack_clone2,
-								&stop_clone2,
-								&pause_clone2)
-				});
-			});
+								&hours_adjustment_clone,
+								&minutes_adjustment_clone,
+								&seconds_adjustment_clone,
+								&hours_spinbutton_clone,
+								&minutes_spinbutton_clone,
+								&seconds_spinbutton_clone,
+								&stack_clone,
+								&stop_clone,
+								&pause_clone)
+				}));
+			}));
 		}
 
 		{ // Bloco que implementa a ação de parar o temporizador
 
-			let stack_clone2 = stack.clone();
-			let hours_adjustment_clone = hours_adjustment.clone();
-			let minutes_adjustment_clone = minutes_adjustment.clone();
-			let seconds_adjustment_clone = seconds_adjustment.clone();
-			let hours_spinbutton_clone = hours_spinbutton.clone();
-			let minutes_spinbutton_clone = minutes_spinbutton.clone();
-			let seconds_spinbutton_clone = seconds_spinbutton.clone();
-			let stop_clone = stop.clone();
+			stop_button.connect_clicked(clone!( @weak hours_adjustment,
+												@weak minutes_adjustment,
+			                                    @weak stop,
+			                                    @weak seconds_adjustment,
+			                                    @weak stack,
+			                                    @weak hours_spinbutton,
+			                                    @weak minutes_spinbutton,
+			                                    @weak seconds_spinbutton => move|_| {
+				stack.set_visible_child_name("start");
 
-			stop_button.connect_clicked(move|_| {
-				stack_clone2.set_visible_child_name("start");
+				hours_adjustment.set_value(0.0);
+				minutes_adjustment.set_value(0.0);
+				seconds_adjustment.set_value(0.0);
 
-				hours_adjustment_clone.set_value(0.0);
-				minutes_adjustment_clone.set_value(0.0);
-				seconds_adjustment_clone.set_value(0.0);
-
-				hours_spinbutton_clone.set_sensitive(true);
-				minutes_spinbutton_clone.set_sensitive(true);
-				seconds_spinbutton_clone.set_sensitive(true);
+				hours_spinbutton.set_sensitive(true);
+				minutes_spinbutton.set_sensitive(true);
+				seconds_spinbutton.set_sensitive(true);
 				println!("STOP PLEASE!");
-				*stop_clone.borrow_mut() = true;
-			});
+				*stop.borrow_mut() = true;
+			}));
 		}
 
 		{ // Bloco de pausa
 
-			let stack_clone = stack.clone();
-			let hours_adjustment_clone = hours_adjustment.clone();
-			let minutes_adjustment_clone = minutes_adjustment.clone();
-			let seconds_adjustment_clone = seconds_adjustment.clone();
-			let stop_clone = stop.clone();
-			let pause_clone = pause.clone();
-			let pause_value_clone = pause_value.clone();
-
-			pause_button.connect_clicked(move|_| {
+			pause_button.connect_clicked(clone!(@weak hours_adjustment,
+												@weak minutes_adjustment,
+			                                    @weak stop,
+			                                    @weak seconds_adjustment,
+			                                    @weak stack,
+			                                    @weak pause_value,
+			                                    @weak pause => move|_| {
 
 				// Alterna para a página de continue do gtk_stack
-				stack_clone.set_visible_child_name("continue");
+				stack.set_visible_child_name("continue");
 
 				// Recupera o valor atual do tempo
 				let seconds =
-					hours_adjustment_clone.get_value() * 3600.0 +
-					minutes_adjustment_clone.get_value() * 60.0 +
-					seconds_adjustment_clone.get_value();
+					hours_adjustment.get_value() * 3600.0 +
+					minutes_adjustment.get_value() * 60.0 +
+					seconds_adjustment.get_value();
 
-				*pause_value_clone.borrow_mut() = seconds;
-				*pause_clone.borrow_mut() = true;
-				*stop_clone.borrow_mut() = true; // Altera o estado para parar o receiver
-				println!("O valor do pause_clone dentro do callback do pause_button é: {:?}", pause_value_clone);
-				println!("O valor do pause_clone dentro do callback do pause_button é: {}", *pause_value_clone.borrow());
-			});
+				*pause_value.borrow_mut() = seconds;
+				*pause.borrow_mut() = true;
+				*stop.borrow_mut() = true; // Altera o estado para parar o receiver
+				println!("O valor do pause_clone dentro do callback do pause_button é: {:?}", pause_value);
+				println!("O valor do pause_clone dentro do callback do pause_button é: {}", *pause_value.borrow());
+			}));
 		}
 
 		{ // Bloco que implementa a continuação
 
-			let hours_adjustment_clone = hours_adjustment.clone();
-			let minutes_adjustment_clone = minutes_adjustment.clone();
-			let seconds_adjustment_clone = seconds_adjustment.clone();
-			let hours_spinbutton_clone = hours_spinbutton.clone();
-			let minutes_spinbutton_clone = minutes_spinbutton.clone();
-			let seconds_spinbutton_clone = seconds_spinbutton.clone();
-			let stack_clone = stack.clone();
-			let stop_clone = stop.clone();
-			let pause_clone = pause.clone();
+			continue_button.connect_clicked(clone!( @weak hours_adjustment, @weak minutes_adjustment,
+													@weak stop, @weak seconds_adjustment, @weak stack,
+													@weak hours_spinbutton, @weak minutes_spinbutton,
+													@weak seconds_spinbutton,@weak pause => move|_| {
 
-			continue_button.connect_clicked(move|_| {
-
-				*stop_clone.borrow_mut() = false;
-				*pause_clone.borrow_mut() = false;
+				*stop.borrow_mut() = false;
+				*pause.borrow_mut() = false;
 				let (sender_p, receiver_p) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
 				let sender_clone = sender_p.clone();
 				let seconds = *pause_value.borrow();
 
 				do_timeout (seconds,
-							&hours_spinbutton_clone,
-							&minutes_spinbutton_clone,
-							&seconds_spinbutton_clone,
-							&stack_clone,
+							&hours_spinbutton,
+							&minutes_spinbutton,
+							&seconds_spinbutton,
+							&stack,
 							&sender_clone);
 
-				let hours_adjustment_clone2 = hours_adjustment_clone.clone();
-				let minutes_adjustment_clone2 = minutes_adjustment_clone.clone();
-				let seconds_adjustment_clone2 = seconds_adjustment_clone.clone();
-				let stack_clone2 = stack_clone.clone();
-				let stop_clone2 = stop_clone.clone();
-				let pause_clone2 = pause_clone.clone();
-				let hours_spinbutton_clone2 = hours_spinbutton_clone.clone();
-				let minutes_spinbutton_clone2 = minutes_spinbutton_clone.clone();
-				let seconds_spinbutton_clone2 = seconds_spinbutton_clone.clone();
-
-				receiver_p.attach(None, move |msg|{
+				receiver_p.attach(None,clone!( @weak hours_adjustment, @weak minutes_adjustment,
+			                                    @weak stop, @weak seconds_adjustment, @weak stack,
+			                                    @weak hours_spinbutton, @weak minutes_spinbutton,
+			                                    @weak seconds_spinbutton,@weak pause => @default-return glib::Continue(false), move |msg|{
 					do_receiver(msg,
-								&hours_adjustment_clone2,
-								&minutes_adjustment_clone2,
-								&seconds_adjustment_clone2,
-								&hours_spinbutton_clone2,
-								&minutes_spinbutton_clone2,
-								&seconds_spinbutton_clone2,
-								&stack_clone2,
-								&stop_clone2,
-								&pause_clone2)
-				});
-			});
+								&hours_adjustment,
+								&minutes_adjustment,
+								&seconds_adjustment,
+								&hours_spinbutton,
+								&minutes_spinbutton,
+								&seconds_spinbutton,
+								&stack,
+								&stop,
+								&pause)
+				}));
+			}));
 		}
 
 		window.show();
