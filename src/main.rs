@@ -9,7 +9,13 @@ use gtk::prelude::*;
 use gio::prelude::*;
 use std::env::args;
 use gtk::{Application};
-use glib::clone;
+use glib::{clone, Sender, Receiver};
+
+macro_rules! get_widget {
+    ($builder:expr, $wtype:ty, $name:ident) => {
+        let $name: $wtype = $builder.get_object(stringify!($name)).expect(&format!("Could not find widget \"{}\"", stringify!($name)));
+    };
+}
 
 enum Time {
 	UpdateTime(f64),
@@ -21,28 +27,27 @@ fn main() {
     	return;
 	}
 
-	let application = Application::new(Some("com.github.gtk-rs.examples.basic"), Default::default())
+	let application = Application::new(Some("com.github.marciosr.temporizador"), Default::default())
 		.expect("failed to initialize GTK application");
 
 	application.connect_activate(|app| {
 
 		let ui_src = include_str!("window.ui");
 		let ui = gtk::Builder::new_from_string(ui_src);
+		get_widget!(ui, gtk::SpinButton, hours_spinbutton);
+		get_widget!(ui, gtk::SpinButton, minutes_spinbutton);
+		get_widget!(ui, gtk::SpinButton, seconds_spinbutton);
+		get_widget!(ui, gtk::Adjustment, hours_adjustment);
+		get_widget!(ui, gtk::Adjustment, minutes_adjustment);
+		get_widget!(ui, gtk::Adjustment, seconds_adjustment);
+		get_widget!(ui, gtk::Button, start_button);
+		get_widget!(ui, gtk::Button, stop_button);
+		get_widget!(ui, gtk::Button, pause_button);
+		get_widget!(ui, gtk::Button, continue_button);
+		get_widget!(ui, gtk::Stack, stack);
+		get_widget!(ui, gtk::ApplicationWindow, window);
 
-		let hours_spinbutton: gtk::SpinButton = ui.get_object("hours_spinbutton").unwrap();
-		let hours_adjustment: gtk::Adjustment = ui.get_object("hours_adjustment").unwrap();
-		let minutes_spinbutton: gtk::SpinButton = ui.get_object("minutes_spinbutton").unwrap();
-		let minutes_adjustment: gtk::Adjustment = ui.get_object("minutes_adjustment").unwrap();
-		let seconds_spinbutton: gtk::SpinButton = ui.get_object("seconds_spinbutton").unwrap();
-		let seconds_adjustment: gtk::Adjustment = ui.get_object("seconds_adjustment").unwrap();
-		let start_button: gtk::Button = ui.get_object("start_button").unwrap();
-		let stack: gtk::Stack = ui.get_object("stack").unwrap();
-		let stop_button: gtk::Button = ui.get_object("stop_button").unwrap();
-		let pause_button: gtk::Button = ui.get_object("pause_button").unwrap();
-		let continue_button: gtk::Button = ui.get_object("continue_button").unwrap();
-
-		let window: gtk::ApplicationWindow = ui.get_object("window").unwrap();
-		window.set_title("First GTK4 Program");
+		window.set_title("Temporizador");
 		window.set_default_size(350, 200);
 		app.add_window(&window);
 
@@ -72,12 +77,12 @@ fn main() {
 					minutes_adjustment_clone.get_value() * 60.0 +
 					seconds_adjustment_clone.get_value();
 
-				do_timeout (	seconds,
-								&hours_spinbutton_clone,
-								&minutes_spinbutton_clone,
-								&seconds_spinbutton_clone,
-								&stack_clone,
-								&sender_clone);
+				do_timeout (seconds,
+							&hours_spinbutton_clone,
+							&minutes_spinbutton_clone,
+							&seconds_spinbutton_clone,
+							&stack_clone,
+							&sender_clone);
 
 				receiver.attach(None,clone!(@weak hours_adjustment_clone,
 											@weak minutes_adjustment_clone,
@@ -113,6 +118,7 @@ fn main() {
 			                                    @weak hours_spinbutton,
 			                                    @weak minutes_spinbutton,
 			                                    @weak seconds_spinbutton => move|_| {
+
 				stack.set_visible_child_name("start");
 
 				hours_adjustment.set_value(0.0);
@@ -288,3 +294,4 @@ fn do_receiver (msg: Time,
 		glib::Continue(true)
 	}
 }
+
