@@ -7,7 +7,7 @@
 			<object class="GtkHeaderBar" id="headerBar">
 				<property name="visible">True</property>
 				<property name="show-title-buttons">True</property>
-				<property name="title">Temporizador</property>
+				<!-- <property name="title">Temporizador</property> -->
 			</object>
 		</child>
 
