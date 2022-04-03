@@ -15,3 +15,7 @@ git = "https://github.com/gtk-rs/glib"
 package = "gtk4"
 git = "https://github.com/gtk-rs/gtk4"
 
+# [dependencies.gdk]
+# package = "gdk4"
+# git = "https://github.com/gtk-rs/gdk4"
+

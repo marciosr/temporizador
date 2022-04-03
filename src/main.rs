@@ -1,6 +1,7 @@
 extern crate gtk;
 extern crate gio;
 extern crate glib;
+// extern crate gdk;
 
 use std::thread;
 use std::cell::RefCell;
