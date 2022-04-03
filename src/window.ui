@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+ 	<object id="window" class="GtkApplicationWindow">
+		<property name="title">Grid</property>
+
+ 		<child type="titlebar">
+			<object class="GtkHeaderBar" id="headerBar">
+				<property name="visible">True</property>
+				<property name="show-title-buttons">True</property>
+				<!-- <property name="title">Temporizador</property> -->
+			</object>
+		</child>
+
+		<child>
+			<object class="GtkBox">
+				<property name="halign">center</property>
+				<property name="valign">center</property>
+				<property name="spacing">12</property>
+				<property name="hexpand">True</property>
+				<property name="orientation">vertical</property>
+
+				<child>
+				  <object id="box" class="GtkBox">
+					<property name="halign">center</property>
+					<property name="valign">center</property>
+					<property name="spacing">12</property>
+					<property name="hexpand">True</property>
+
+					<!-- Horas -->
+					<child>
+					  <object id="hours_spinbutton" class="GtkSpinButton">
+						  <property name="orientation">vertical</property>
+						  <property name="adjustment">hours_adjustment</property>
+					  </object>
+					</child>
+					<child>
+						<object class="GtkLabel">
+							<property name="label">:</property>
+						</object>
+					</child>
+
+					<!-- Minutos -->
+					<child>
+					  <object id="minutes_spinbutton" class="GtkSpinButton">
+						 <property name="orientation">vertical</property>
+						  <property name="adjustment">minutes_adjustment</property>
+					  </object>
+					</child>
+					<child>
+						<object class="GtkLabel">
+							<property name="label">:</property>
+						</object>
+					</child>
+
+					<!-- Segundos -->
+					<child>
+					  <object id="seconds_spinbutton" class="GtkSpinButton">
+						  <property name="orientation">vertical</property>
+						  <property name="adjustment">seconds_adjustment</property>
+					  </object>
+					</child>
+
+				  </object>
+				</child>
+
+				<child>
+					<object class="GtkStack" id="stack">
+						<property name="transition-type">crossfade</property>
+						<property name="transition-duration">200</property>
+						<child>
+							<object class="GtkStackPage">
+								<property name="name">start</property>
+								<property name="child">
+									<object class="GtkButton" id="start_button">
+										<property name="label">Iniciar</property>
+										<style>
+											<class name="suggested-action"/>
+										</style>
+									</object>
+								</property>
+							</object>
+						</child>
+						<child>
+							<object class="GtkStackPage">
+								<property name="name">pause_stop</property>
+								<property name="child">
+									<object class="GtkBox">
+										<property name="spacing">12</property>
+
+										<child>
+											<object class="GtkButton" id="pause_button">
+												<property name="label">Pausar</property>
+												<style>
+													<class name="suggested-action"/>
+												</style>
+											</object>
+										</child>
+										<child>
+											<object class="GtkButton" id="stop_button">
+												<property name="label">Parar</property>
+												<style>
+													<class name="destructive-action"/>
+												</style>
+											</object>
+										</child>
+									</object>
+								</property>
+							</object>
+						</child>
+						<child>
+							<object class="GtkStackPage">
+								<property name="name">continue</property>
+								<property name="child">
+									<object class="GtkButton" id="continue_button">
+										<property name="label">Continuar</property>
+										<style>
+											<class name="suggested-action"/>
+										</style>
+									</object>
+								</property>
+							</object>
+						</child>
+					</object>
+				</child>
+			</object>
+		</child>
+  </object>
+	<object class="GtkAdjustment" id="hours_adjustment">
+		<property name="lower">0</property>
+		<property name="upper">99</property>
+		<property name="value">0</property>
+		<property name="step-increment">1</property>
+		<property name="page-increment">6</property>
+	</object>
+		<object class="GtkAdjustment" id="minutes_adjustment">
+		<property name="lower">0</property>
+		<property name="upper">59</property>
+		<property name="value">0</property>
+		<property name="step-increment">1</property>
+		<property name="page-increment">6</property>
+	</object>
+		<object class="GtkAdjustment" id="seconds_adjustment">
+		<property name="lower">0</property>
+		<property name="upper">59</property>
+		<property name="value">0</property>
+		<property name="step-increment">1</property>
+		<property name="page-increment">6</property>
+	</object>
+</interface>
