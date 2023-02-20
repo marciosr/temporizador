@@ -13,7 +13,7 @@ use crate::gtk::glib::{MainContext, PRIORITY_DEFAULT, Continue};
 use gtk::glib;
 use glib::clone;
 
-fn main() {
+fn main() -> glib::ExitCode {
 
 	let application = Application::new(Some("com.github.marciosr.temporizador"),
 		Default::default());
@@ -22,7 +22,7 @@ fn main() {
 		let ui_src = include_str!("window.ui");
 		let ui = gtk::Builder::new();
 		ui.add_from_string(&ui_src)
-			.expect("Erro ao abrir aruquivo da interface");
+			.expect("Erro ao abrir arquivo da interface");
 
 		let timer = Timer::new(&ui);
 
@@ -122,6 +122,5 @@ fn main() {
 
 		timer.window.show();
 	});
-	let ret = application.run();
-	std::process::exit(ret);
+	application.run()
 }
